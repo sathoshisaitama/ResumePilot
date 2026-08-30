@@ -1,0 +1,7 @@
+{
+  "name": "AI Resume Builder",
+  "description": "Full-stack AI-powered resume builder with professional templates, Gemini AI enhancements, ATS scoring, live preview, and PDF export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Main Resume Document Card (centered around 54, 54) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M34,26 C31.8,26 30,27.8 30,30 L30,78 C30,80.2 31.8,82 34,82 L74,82 C76.2,82 78,80.2 78,78 L78,40 L64,26 L34,26 Z" />
+    <!-- Folded Corner -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M64,26 L64,40 L78,40 Z" />
+    <!-- Profile Photo Avatar Circle -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M44,38m-6,0a6,6 0,1,1 12,0a6,6 0,1,1 -12,0" />
+    <!-- Header Name & Title Lines -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M54,34 L62,34 A2,2 0 0,1 62,38 L54,38 A2,2 0 0,1 54,34 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M54,41 L61,41 A1.5,1.5 0 0,1 61,44 L54,44 A1.5,1.5 0 0,1 54,41 Z" />
+    <!-- Divider Line -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M36,49 L72,49 A1.5,1.5 0 0,1 72,52 L36,52 A1.5,1.5 0 0,1 36,49 Z" />
+    <!-- Content Bullet Lines -->
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M38,57 L68,57 A1.5,1.5 0 0,1 68,60 L38,60 A1.5,1.5 0 0,1 38,57 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M38,64 L62,64 A1.5,1.5 0 0,1 62,67 L38,67 A1.5,1.5 0 0,1 38,64 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M38,71 L56,71 A1.5,1.5 0 0,1 56,74 L38,74 A1.5,1.5 0 0,1 38,71 Z" />
+    <!-- AI Sparkle 1 (Top Right) -->
+    <path
+        android:fillColor="#FACC15"
+        android:pathData="M76,22 C76,26 80,26 80,26 C80,26 76,26 76,30 C76,26 72,26 72,26 C72,26 76,26 76,22 Z" />
+    <!-- AI Sparkle 2 (Bottom Right) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M72,66 C72,70 76,70 76,70 C76,70 72,70 72,74 C72,70 68,70 68,70 C68,70 72,70 72,66 Z" />
+</vector>
