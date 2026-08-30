@@ -99,6 +99,21 @@ object ResumePdfGenerator {
             }
             canvas.drawText(contactLine, MARGIN_X, 78f, contactPaint)
 
+            // Draw QR Code on top right if enabled
+            if (resume.personalInfo.includeQrCode) {
+                val qrTargetUrl = when (resume.personalInfo.qrCodeTarget) {
+                    "LinkedIn" -> resume.personalInfo.linkedinUrl.ifBlank { resume.personalInfo.websiteUrl }
+                    "GitHub" -> resume.personalInfo.githubUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                    else -> resume.personalInfo.websiteUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                }
+                if (qrTargetUrl.isNotBlank()) {
+                    val qrBitmap = QrCodeGenerator.generateQrBitmap(qrTargetUrl, 56)
+                    val qrX = PAGE_WIDTH - MARGIN_X - 56f
+                    val qrY = 16f
+                    canvas.drawBitmap(qrBitmap, qrX, qrY, null)
+                }
+            }
+
             currentY = 106f
         } else {
             // Modern / Minimal / ATS Classic Header
@@ -134,6 +149,22 @@ object ResumePdfGenerator {
                 isAntiAlias = true
             }
             canvas.drawText(contactLine, MARGIN_X, currentY + 10f, contactPaint)
+
+            // Draw QR Code in upper right
+            if (resume.personalInfo.includeQrCode) {
+                val qrTargetUrl = when (resume.personalInfo.qrCodeTarget) {
+                    "LinkedIn" -> resume.personalInfo.linkedinUrl.ifBlank { resume.personalInfo.websiteUrl }
+                    "GitHub" -> resume.personalInfo.githubUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                    else -> resume.personalInfo.websiteUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                }
+                if (qrTargetUrl.isNotBlank()) {
+                    val qrBitmap = QrCodeGenerator.generateQrBitmap(qrTargetUrl, 52)
+                    val qrX = PAGE_WIDTH - MARGIN_X - 52f
+                    val qrY = MARGIN_Y
+                    canvas.drawBitmap(qrBitmap, qrX, qrY, null)
+                }
+            }
+
             currentY += 16f
 
             // Divider line

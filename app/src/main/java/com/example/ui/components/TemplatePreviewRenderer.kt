@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,11 +11,13 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -25,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ResumeFull
 import com.example.data.model.ResumeTemplate
+import com.example.util.QrCodeGenerator
 
 @Composable
 fun ResumeSheetPreview(
@@ -96,22 +100,26 @@ private fun ModernTemplateLayout(
                 )
             }
 
-            // Initials Avatar Badge
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(accentColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = resume.personalInfo.fullName.split(" ")
-                        .mapNotNull { it.firstOrNull()?.toString() }
-                        .take(2).joinToString("").ifBlank { "ME" },
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ResumeQrThumbnail(resume, sizeDp = 42)
+                Spacer(modifier = Modifier.width(8.dp))
+                // Initials Avatar Badge
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(accentColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = resume.personalInfo.fullName.split(" ")
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .take(2).joinToString("").ifBlank { "ME" },
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
 
@@ -716,5 +724,41 @@ private fun ContactMiniItem(icon: ImageVector, text: String) {
         Icon(icon, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(11.dp))
         Spacer(modifier = Modifier.width(3.dp))
         Text(text, fontSize = 9.sp, color = Color(0xFF475569))
+    }
+}
+
+@Composable
+private fun ResumeQrThumbnail(resume: ResumeFull, sizeDp: Int = 42) {
+    if (!resume.personalInfo.includeQrCode) return
+    val url = when (resume.personalInfo.qrCodeTarget) {
+        "LinkedIn" -> resume.personalInfo.linkedinUrl.ifBlank { resume.personalInfo.websiteUrl }
+        "GitHub" -> resume.personalInfo.githubUrl.ifBlank { resume.personalInfo.linkedinUrl }
+        else -> resume.personalInfo.websiteUrl.ifBlank { resume.personalInfo.linkedinUrl }
+    }
+    if (url.isBlank()) return
+
+    val qrBitmap = remember(url) {
+        QrCodeGenerator.generateQrBitmap(url, 100)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(start = 8.dp)
+    ) {
+        Image(
+            bitmap = qrBitmap.asImageBitmap(),
+            contentDescription = "QR Code to ${resume.personalInfo.qrCodeTarget}",
+            modifier = Modifier
+                .size(sizeDp.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
+        )
+        Text(
+            text = "Scan ${resume.personalInfo.qrCodeTarget}",
+            fontSize = 7.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF64748B),
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.PersonalInfo
 import com.example.data.model.ResumeFull
 import com.example.data.model.ResumeTemplate
+import com.example.ui.components.ImportResumeDialog
 import com.example.ui.components.ResumeCardItem
 import com.example.ui.theme.AiSparkleGradientEnd
 import com.example.ui.theme.AiSparkleGradientStart
@@ -39,6 +40,7 @@ import java.util.UUID
 fun DashboardScreen(
     resumes: List<ResumeFull>,
     onCreateNewResume: () -> Unit,
+    onImportResume: (ResumeFull) -> Unit = {},
     onEditResume: (ResumeFull) -> Unit,
     onPreviewResume: (ResumeFull) -> Unit,
     onDuplicateResume: (ResumeFull) -> Unit,
@@ -52,6 +54,7 @@ fun DashboardScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilterTemplate by remember { mutableStateOf<ResumeTemplate?>(null) }
     var resumeToDelete by remember { mutableStateOf<ResumeFull?>(null) }
+    var showImportDialog by remember { mutableStateOf(false) }
 
     val filteredResumes = remember(resumes, searchQuery, selectedFilterTemplate) {
         resumes.filter { resume ->
@@ -176,31 +179,32 @@ fun DashboardScreen(
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryIndigo, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("New Resume", color = PrimaryIndigo, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("New", color = PrimaryIndigo, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = { showImportDialog = true },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White, Color.White))),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.testTag("dashboard_import_button")
+                                ) {
+                                    Icon(Icons.Outlined.UploadFile, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Import", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
 
                                 OutlinedButton(
                                     onClick = onOpenAiCoach,
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White, Color.White))),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.6f)))),
                                     shape = RoundedCornerShape(12.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
                                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("AI Coach", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { onOpenCoverLetterGenerator(resumes.firstOrNull()) },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.5f), Color.White.copy(alpha = 0.5f)))),
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                                ) {
-                                    Icon(Icons.Outlined.Email, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Cover Letter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -375,6 +379,16 @@ fun DashboardScreen(
                 TextButton(onClick = { resumeToDelete = null }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (showImportDialog) {
+        ImportResumeDialog(
+            onDismiss = { showImportDialog = false },
+            onImportSuccess = { importedResume ->
+                onImportResume(importedResume)
+                showImportDialog = false
             }
         )
     }

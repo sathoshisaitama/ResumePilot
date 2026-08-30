@@ -100,6 +100,11 @@ fun ResumeApp(
                         viewModel.selectResume(newResume)
                         navController.navigate(Screen.Editor.route)
                     },
+                    onImportResume = { imported ->
+                        viewModel.saveResume(imported)
+                        viewModel.selectResume(imported)
+                        navController.navigate(Screen.Editor.route)
+                    },
                     onEditResume = { resume ->
                         viewModel.selectResume(resume)
                         navController.navigate(Screen.Editor.route)

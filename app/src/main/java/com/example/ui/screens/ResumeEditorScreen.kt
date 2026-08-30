@@ -30,10 +30,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.components.*
-import com.example.ui.theme.AiSparkleGradientEnd
-import com.example.ui.theme.AiSparkleGradientStart
-import com.example.ui.theme.PrimaryIndigo
-import com.example.ui.theme.SuccessGreen
+import com.example.ui.theme.*
 import java.util.UUID
 
 enum class EditorTab(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
@@ -61,10 +58,13 @@ fun ResumeEditorScreen(
     // Dialog States
     var showAiSummaryDialog by remember { mutableStateOf(false) }
     var bulletToOptimize by remember { mutableStateOf<Pair<Int, Int>?>(null) } // expIndex, bulletIndex
+    var bulletToScoreXyz by remember { mutableStateOf<Triple<Int, Int, String>?>(null) } // expIndex, bulletIndex, text
     var experienceRoleToGenerate by remember { mutableStateOf<Int?>(null) } // expIndex (-1 for new role)
     var educationToSuggest by remember { mutableStateOf<Int?>(null) } // eduIndex (-1 for new edu)
     var showAiSkillsDialog by remember { mutableStateOf(false) }
     var showJobDescriptionDialog by remember { mutableStateOf(false) }
+    var showJobKeywordMatcherDialog by remember { mutableStateOf(false) }
+    var showTranslateDialog by remember { mutableStateOf(false) }
     var showSaveToast by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -99,12 +99,34 @@ fun ResumeEditorScreen(
                     }
                 },
                 actions = {
+                    // Job Keyword Matcher Chip
+                    AssistChip(
+                        onClick = { showJobKeywordMatcherDialog = true },
+                        label = {
+                            Text(
+                                "Keywords",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Rounded.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = PrimaryIndigo
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(containerColor = PrimaryIndigo.copy(alpha = 0.08f)),
+                        modifier = Modifier.padding(end = 2.dp)
+                    )
+
                     // Target Job Description quick button
                     AssistChip(
                         onClick = { showJobDescriptionDialog = true },
                         label = {
                             Text(
-                                if (resumeState.targetJobDescription.isNotBlank()) "Target JD: Set" else "Target JD",
+                                if (resumeState.targetJobDescription.isNotBlank()) "JD: Set" else "JD",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -117,8 +139,16 @@ fun ResumeEditorScreen(
                                 tint = if (resumeState.targetJobDescription.isNotBlank()) PrimaryIndigo else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        modifier = Modifier.padding(end = 4.dp)
+                        modifier = Modifier.padding(end = 2.dp)
                     )
+
+                    // Translate Button
+                    IconButton(
+                        onClick = { showTranslateDialog = true },
+                        modifier = Modifier.testTag("editor_translate_button")
+                    ) {
+                        Icon(Icons.Outlined.Translate, contentDescription = "Translate Resume", tint = SecondaryPurple)
+                    }
 
                     // Preview Icon
                     IconButton(
@@ -191,6 +221,9 @@ fun ResumeEditorScreen(
                     onUpdateExperiences = { resumeState = resumeState.copy(experiences = it) },
                     onOptimizeBullet = { expIdx, bulletIdx ->
                         bulletToOptimize = expIdx to bulletIdx
+                    },
+                    onScoreBulletXyz = { expIdx, bulletIdx, text ->
+                        bulletToScoreXyz = Triple(expIdx, bulletIdx, text)
                     },
                     onSuggestRoleBullets = { expIdx ->
                         experienceRoleToGenerate = expIdx
@@ -465,6 +498,83 @@ fun ResumeEditorScreen(
             }
         }
     }
+
+    // 7. Job Keyword Matcher & Gap Highlighter Dialog
+    if (showJobKeywordMatcherDialog) {
+        JobKeywordMatcherDialog(
+            resume = resumeState,
+            initialJobDescription = resumeState.targetJobDescription,
+            onDismiss = { showJobKeywordMatcherDialog = false },
+            onInsertSuggestedBullet = { expIdx, bullet ->
+                val exps = resumeState.experiences.toMutableList()
+                if (exps.isNotEmpty()) {
+                    val targetIdx = expIdx.coerceIn(0, exps.lastIndex)
+                    val exp = exps[targetIdx]
+                    exps[targetIdx] = exp.copy(bullets = exp.bullets + bullet)
+                } else {
+                    exps.add(
+                        ExperienceItem(
+                            position = resumeState.personalInfo.jobTitle.ifBlank { "Software Engineer" },
+                            company = "Professional Experience",
+                            startDate = "Jan 2022",
+                            endDate = "Present",
+                            isCurrent = true,
+                            bullets = listOf(bullet)
+                        )
+                    )
+                }
+                resumeState = resumeState.copy(experiences = exps)
+            },
+            onAddMissingSkill = { skill ->
+                val categories = resumeState.skillCategories.toMutableList()
+                if (categories.isNotEmpty()) {
+                    val first = categories[0]
+                    categories[0] = first.copy(skills = (first.skills + skill).distinct())
+                } else {
+                    categories.add(SkillCategory(categoryName = "Technical Skills", skills = listOf(skill)))
+                }
+                resumeState = resumeState.copy(skillCategories = categories)
+            },
+            onSaveJobDescription = { jd ->
+                resumeState = resumeState.copy(targetJobDescription = jd)
+            }
+        )
+    }
+
+    // 8. Google XYZ Bullet Metric Scorer Dialog
+    bulletToScoreXyz?.let { (expIdx, bulletIdx, bulletText) ->
+        val currentRole = resumeState.experiences.getOrNull(expIdx)?.position ?: resumeState.personalInfo.jobTitle
+        BulletMetricScorerDialog(
+            initialBullet = bulletText,
+            jobTitle = currentRole,
+            onDismiss = { bulletToScoreXyz = null },
+            onApplyImprovedBullet = { improved ->
+                val exps = resumeState.experiences.toMutableList()
+                if (expIdx in exps.indices) {
+                    val exp = exps[expIdx]
+                    val bullets = exp.bullets.toMutableList()
+                    if (bulletIdx in bullets.indices) {
+                        bullets[bulletIdx] = improved
+                    }
+                    exps[expIdx] = exp.copy(bullets = bullets)
+                    resumeState = resumeState.copy(experiences = exps)
+                }
+                bulletToScoreXyz = null
+            }
+        )
+    }
+
+    // 9. One-Click Multi-Language Translation Dialog
+    if (showTranslateDialog) {
+        TranslateResumeDialog(
+            resume = resumeState,
+            onDismiss = { showTranslateDialog = false },
+            onTranslationComplete = { translatedResume ->
+                resumeState = translatedResume
+                onSaveResume(translatedResume)
+            }
+        )
+    }
 }
 
 // ---------------- SECTION 1: PERSONAL INFO ----------------
@@ -571,6 +681,51 @@ private fun PersonalInfoSection(
                 singleLine = true
             )
         }
+
+        // LinkedIn/Portfolio QR Code Toggle
+        item {
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.QrCode, contentDescription = null, tint = PrimaryIndigo, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Display Header QR Code", fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+                            }
+                            Text("Embed a scannable QR code on your PDF & preview", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = personalInfo.includeQrCode,
+                            onCheckedChange = { onUpdate(personalInfo.copy(includeQrCode = it)) }
+                        )
+                    }
+
+                    if (personalInfo.includeQrCode) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("QR Code links to:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("LinkedIn", "GitHub", "Website").forEach { target ->
+                                FilterChip(
+                                    selected = personalInfo.qrCodeTarget == target,
+                                    onClick = { onUpdate(personalInfo.copy(qrCodeTarget = target)) },
+                                    label = { Text(target, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -664,6 +819,7 @@ private fun ExperienceSection(
     targetRole: String,
     onUpdateExperiences: (List<ExperienceItem>) -> Unit,
     onOptimizeBullet: (expIndex: Int, bulletIndex: Int) -> Unit,
+    onScoreBulletXyz: (expIndex: Int, bulletIndex: Int, bulletText: String) -> Unit,
     onSuggestRoleBullets: (expIndex: Int) -> Unit
 ) {
     LazyColumn(
@@ -861,6 +1017,14 @@ private fun ExperienceSection(
                                 maxLines = 4,
                                 placeholder = { Text("e.g. Spearheaded system rewrite...") }
                             )
+
+                            // XYZ Metric Scorer Button
+                            IconButton(
+                                onClick = { onScoreBulletXyz(expIdx, bulletIdx, bulletText) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.Insights, contentDescription = "Score XYZ Formula", tint = MaterialTheme.colorScheme.tertiary)
+                            }
 
                             // AI Optimize Button for this bullet
                             IconButton(
@@ -1510,6 +1674,24 @@ private fun DesignThemeSection(
                         label = { Text(label) }
                     )
                 }
+            }
+        }
+
+        item {
+            Divider(modifier = Modifier.padding(vertical = 4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Header QR Code", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Embed scannable LinkedIn/Portfolio QR code in resume header", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = resume.personalInfo.includeQrCode,
+                    onCheckedChange = { onUpdateResume(resume.copy(personalInfo = resume.personalInfo.copy(includeQrCode = it))) }
+                )
             }
         }
 

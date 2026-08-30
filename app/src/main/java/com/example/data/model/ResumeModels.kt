@@ -15,7 +15,9 @@ data class PersonalInfo(
     val githubUrl: String = "",
     val summary: String = "",
     val photoUri: String = "",
-    val avatarColorHex: String = "#4F46E5"
+    val avatarColorHex: String = "#4F46E5",
+    val includeQrCode: Boolean = true,
+    val qrCodeTarget: String = "LinkedIn" // "LinkedIn", "GitHub", "Website"
 )
 
 @JsonClass(generateAdapter = true)
@@ -140,3 +142,47 @@ data class UserProfile(
     val isLoggedIn: Boolean = true,
     val planType: String = "Pro Plan (Gemini AI Included)"
 )
+
+@JsonClass(generateAdapter = true)
+data class MissingKeywordSuggestion(
+    val keyword: String = "",
+    val category: String = "Skill", // "Hard Skill", "Soft Skill", "Tool / Framework", "Certification"
+    val suggestedBullet: String = "",
+    val contextImportance: String = "High" // "High", "Medium", "Bonus"
+)
+
+@JsonClass(generateAdapter = true)
+data class JobKeywordGapResult(
+    val matchPercentage: Int = 0,
+    val matchedKeywords: List<String> = emptyList(),
+    val missingKeywords: List<MissingKeywordSuggestion> = emptyList(),
+    val topRoleTitle: String = "",
+    val recruiterAdvice: String = ""
+)
+
+@JsonClass(generateAdapter = true)
+data class BulletMetricScore(
+    val score: Int = 8, // 1 to 10
+    val ratingBadge: String = "Strong XYZ", // "Strong XYZ", "Needs Metrics", "Weak Action"
+    val hasActionVerb: Boolean = true,
+    val actionVerbFound: String = "",
+    val hasQuantifiableMetric: Boolean = true,
+    val metricFound: String = "",
+    val hasBusinessResult: Boolean = true,
+    val feedbackExplanation: String = "",
+    val improvedVariations: List<String> = emptyList()
+)
+
+enum class TargetLanguage(val code: String, val displayName: String, val flag: String) {
+    SPANISH("es", "Spanish", "🇪🇸"),
+    FRENCH("fr", "French", "🇫🇷"),
+    GERMAN("de", "German", "🇩🇪"),
+    JAPANESE("ja", "Japanese", "🇯🇵"),
+    CHINESE("zh", "Chinese (Simplified)", "🇨🇳"),
+    PORTUGUESE("pt", "Portuguese", "🇵🇹"),
+    HINDI("hi", "Hindi", "🇮🇳"),
+    ITALIAN("it", "Italian", "🇮🇹"),
+    ARABIC("ar", "Arabic", "🇦🇪"),
+    ENGLISH("en", "English", "🇺🇸")
+}
+

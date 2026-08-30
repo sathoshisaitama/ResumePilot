@@ -30,6 +30,7 @@ import com.example.data.model.ResumeFull
 import com.example.data.model.ResumeTemplate
 import com.example.ui.components.ColorPickerRow
 import com.example.ui.components.ResumeSheetPreview
+import com.example.ui.components.TranslateResumeDialog
 import com.example.ui.theme.PrimaryIndigo
 import com.example.util.ResumePdfGenerator
 
@@ -48,6 +49,7 @@ fun PreviewExportScreen(
     var resumeState by remember { mutableStateOf(initialResume) }
     var showShareModal by remember { mutableStateOf(false) }
     var showColorPaletteSheet by remember { mutableStateOf(false) }
+    var showTranslateDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.testTag("preview_export_screen"),
@@ -77,6 +79,13 @@ fun PreviewExportScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { showTranslateDialog = true },
+                        modifier = Modifier.testTag("preview_translate_button")
+                    ) {
+                        Icon(Icons.Outlined.Translate, contentDescription = "Translate Resume")
+                    }
+
                     IconButton(
                         onClick = { onNavigateAtsScanner(resumeState) },
                         modifier = Modifier.testTag("ats_scanner_icon_button")
@@ -281,6 +290,18 @@ fun PreviewExportScreen(
                 TextButton(onClick = { showShareModal = false }) {
                     Text("Close")
                 }
+            }
+        )
+    }
+
+    if (showTranslateDialog) {
+        TranslateResumeDialog(
+            resume = resumeState,
+            onDismiss = { showTranslateDialog = false },
+            onTranslationComplete = { translated ->
+                resumeState = translated
+                onSaveResume(translated)
+                Toast.makeText(context, "Resume translated to ${translated.title}!", Toast.LENGTH_SHORT).show()
             }
         )
     }
