@@ -46,6 +46,7 @@ fun DashboardScreen(
     onAtsScanResume: (ResumeFull) -> Unit,
     onShareResume: (ResumeFull) -> Unit,
     onOpenCoverLetterGenerator: (ResumeFull?) -> Unit,
+    onOpenAiCoach: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -166,28 +167,40 @@ fun DashboardScreen(
                                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                             )
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
                                     onClick = onCreateNewResume,
                                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                                     shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryIndigo, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("New Resume", color = PrimaryIndigo, fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = PrimaryIndigo, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("New Resume", color = PrimaryIndigo, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = onOpenAiCoach,
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White, Color.White))),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("AI Coach", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
 
                                 OutlinedButton(
                                     onClick = { onOpenCoverLetterGenerator(resumes.firstOrNull()) },
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White, Color.White))),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.5f), Color.White.copy(alpha = 0.5f)))),
                                     shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
-                                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("AI Cover Letter", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                                    Icon(Icons.Outlined.Email, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Cover Letter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }

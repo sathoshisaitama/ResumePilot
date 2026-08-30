@@ -24,6 +24,7 @@ import com.example.ui.viewmodel.ResumeViewModel
 
 sealed class Screen(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     object Dashboard : Screen("dashboard", "Resumes", Icons.Outlined.Description)
+    object Chat : Screen("ai_coach_chat", "AI Coach", Icons.Outlined.SmartToy)
     object CoverLetter : Screen("cover_letter", "Cover Letter", Icons.Outlined.Email)
     object Profile : Screen("profile", "Account", Icons.Outlined.Person)
     object Editor : Screen("editor", "Editor")
@@ -36,21 +37,35 @@ fun ResumeApp(
     viewModel: ResumeViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     val allResumes by viewModel.allResumes.collectAsStateWithLifecycle()
     val currentResume by viewModel.currentResume.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
 
-    val showBottomBar = currentRoute in listOf(Screen.Dashboard.route, Screen.CoverLetter.route, Screen.Profile.route)
+    val chatMessages by viewModel.chatMessages.collectAsStateWithLifecycle()
+    val activePersona by viewModel.activePersona.collectAsStateWithLifecycle()
+    val selectedModel by viewModel.selectedModel.collectAsStateWithLifecycle()
+    val isThinking by viewModel.isThinking.collectAsStateWithLifecycle()
+
+    val showBottomBar = currentRoute in listOf(
+        Screen.Dashboard.route,
+        Screen.Chat.route,
+        Screen.CoverLetter.route,
+        Screen.Profile.route
+    )
 
     Scaffold(
         modifier = modifier.testTag("resume_app_root"),
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(tonalElevation = 8.dp) {
-                    listOf(Screen.Dashboard, Screen.CoverLetter, Screen.Profile).forEach { screen ->
+                    listOf(Screen.Dashboard, Screen.Chat, Screen.CoverLetter, Screen.Profile).forEach { screen ->
                         val isSelected = currentRoute == screen.route
                         NavigationBarItem(
                             selected = isSelected,
@@ -64,7 +79,7 @@ fun ResumeApp(
                                 }
                             },
                             icon = { screen.icon?.let { Icon(it, contentDescription = screen.title) } },
-                            label = { Text(screen.title, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                            label = { Text(screen.title, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
                         )
                     }
                 }
@@ -110,6 +125,35 @@ fun ResumeApp(
                     onOpenCoverLetterGenerator = { resume ->
                         if (resume != null) viewModel.selectResume(resume)
                         navController.navigate(Screen.CoverLetter.route)
+                    },
+                    onOpenAiCoach = {
+                        navController.navigate(Screen.Chat.route)
+                    }
+                )
+            }
+
+            // AI Coach Chat
+            composable(Screen.Chat.route) {
+                AiCoachChatScreen(
+                    messages = chatMessages,
+                    activePersona = activePersona,
+                    selectedModel = selectedModel,
+                    isThinking = isThinking,
+                    activeResume = currentResume ?: allResumes.firstOrNull(),
+                    onSendMessage = { text ->
+                        viewModel.sendChatMessage(text)
+                    },
+                    onSelectPersona = { persona ->
+                        viewModel.setChatPersona(persona)
+                    },
+                    onSelectModel = { model ->
+                        viewModel.setChatModel(model)
+                    },
+                    onClearChat = {
+                        viewModel.clearChat()
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -179,6 +223,21 @@ fun ResumeApp(
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     resumeCount = allResumes.size,
+                    authState = authState,
+                    syncStatus = syncStatus,
+                    isSyncing = isSyncing,
+                    onSignInWithGoogle = {
+                        viewModel.signInWithGoogle(context)
+                    },
+                    onSignOut = {
+                        viewModel.signOut()
+                    },
+                    onSyncAllToFirestore = {
+                        viewModel.syncAllToFirestore()
+                    },
+                    onRestoreFromFirestore = {
+                        viewModel.restoreFromFirestore()
+                    },
                     onNavigateBack = {
                         navController.popBackStack()
                     }
