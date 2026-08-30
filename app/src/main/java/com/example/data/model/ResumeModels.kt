@@ -90,12 +90,46 @@ data class LanguageItem(
 )
 
 enum class ResumeTemplate(val displayName: String, val description: String) {
-    MODERN("Modern Dynamic", "Clean two-column layout with bold accents, ideal for tech & design"),
-    CLASSIC_ATS("Classic ATS", "Single column, high-readability layout optimized for ATS parsers"),
-    MINIMALIST("Clean Minimal", "Spacious typography-focused design with elegant hierarchy"),
-    EXECUTIVE("Executive Bordeaux", "Refined header with dignified section dividers for leadership"),
-    TECH_SLATE("Tech Indigo", "Modern header with tech badges, metrics highlights, and dark accents")
+    CLASSIC_ATS("Classic ATS", "Single-column, high-readability layout optimized for ATS parsers"),
+    MODERN("Modern Clean", "Clean left-aligned contemporary layout with subtle dividers"),
+    MINIMALIST("Minimalist", "Ultra-clean typography, maximized whitespace, pure ATS focus"),
+    EXECUTIVE("Executive", "Refined header band and formal typography for leadership roles"),
+    TECH_SLATE("Technical", "Skills-focused grouping, project-centric layout, dense architecture"),
+    PROFESSIONAL("Professional", "Structured borders and distinct categorized experience blocks")
 }
+
+@JsonClass(generateAdapter = true)
+data class AtsRecommendation(
+    val title: String = "",
+    val description: String = "",
+    val targetSection: String = "General", // "Summary", "Experience", "Skills", "Formatting", "Keywords"
+    val priority: String = "High" // "High", "Medium", "Tip"
+)
+
+@JsonClass(generateAdapter = true)
+data class AtsAnalysisResult(
+    val overallScore: Int = 84,
+    val jobMatchPercentage: Int = 0,
+    val keywordsScore: Int = 18,
+    val maxKeywordsScore: Int = 20,
+    val skillsScore: Int = 9,
+    val maxSkillsScore: Int = 10,
+    val formattingScore: Int = 10,
+    val maxFormattingScore: Int = 10,
+    val experienceScore: Int = 17,
+    val maxExperienceScore: Int = 20,
+    val summaryScore: Int = 8,
+    val maxSummaryScore: Int = 10,
+    val contactScore: Int = 10,
+    val maxContactScore: Int = 10,
+    val matchedKeywords: List<String> = emptyList(),
+    val missingKeywords: List<String> = emptyList(),
+    val recommendations: List<AtsRecommendation> = emptyList(),
+    val actionVerbsCount: Int = 0,
+    val metricsCount: Int = 0,
+    val strengths: List<String> = emptyList(),
+    val potentialIssues: List<String> = emptyList()
+)
 
 @JsonClass(generateAdapter = true)
 data class ResumeFull(

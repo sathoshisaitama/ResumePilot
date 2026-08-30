@@ -924,6 +924,7 @@ $candidateName
             Input Resume Text:
             $rawText
             
+            IMPORTANT RULE: Extract ONLY information, experiences, education, and skills explicitly present in the input text. Do NOT invent qualifications, companies, dates, degrees, skills, or achievements. If a field or detail is missing, leave it empty.
             Return ONLY the valid JSON object. Do not include markdown code block formatting like ```json or any explanation.
         """.trimIndent()
 

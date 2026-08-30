@@ -29,6 +29,7 @@ import com.example.data.model.ResumeFull
 import com.example.data.model.ResumeTemplate
 import com.example.ui.components.ImportResumeDialog
 import com.example.ui.components.ResumeCardItem
+import com.example.ui.components.ResumeHealthDashboardWidget
 import com.example.ui.theme.AiSparkleGradientEnd
 import com.example.ui.theme.AiSparkleGradientStart
 import com.example.ui.theme.PrimaryIndigo
@@ -238,6 +239,21 @@ fun DashboardScreen(
                         icon = Icons.Outlined.Public,
                         accent = Color(0xFF0D9488),
                         modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Primary Resume Health & Quick Actions Widget
+            if (resumes.isNotEmpty()) {
+                item {
+                    val primaryResume = resumes.first()
+                    ResumeHealthDashboardWidget(
+                        activeResume = primaryResume,
+                        onImproveResume = { onEditResume(primaryResume) },
+                        onAnalyzeJob = { onAtsScanResume(primaryResume) },
+                        onImportProfile = { showImportDialog = true },
+                        onChangeTemplate = { onPreviewResume(primaryResume) },
+                        onExportPdf = { onPreviewResume(primaryResume) }
                     )
                 }
             }

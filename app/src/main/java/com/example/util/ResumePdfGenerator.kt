@@ -115,6 +115,75 @@ object ResumePdfGenerator {
             }
 
             currentY = 106f
+        } else if (resume.template == ResumeTemplate.PROFESSIONAL) {
+            // Professional vertical bar header
+            val barPaint = Paint().apply {
+                color = accentColor
+                style = Paint.Style.FILL
+            }
+            canvas.drawRect(MARGIN_X, currentY + 2f, MARGIN_X + 4f, currentY + 44f, barPaint)
+
+            val namePaint = Paint().apply {
+                color = Color.parseColor("#0F172A")
+                textSize = 21f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText(resume.personalInfo.fullName.ifBlank { "Your Name" }, MARGIN_X + 12f, currentY + 20f, namePaint)
+
+            val titlePaint = Paint().apply {
+                color = accentColor
+                textSize = 12f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText(resume.personalInfo.jobTitle.ifBlank { "Professional Title" }, MARGIN_X + 12f, currentY + 38f, titlePaint)
+
+            // QR Code
+            if (resume.personalInfo.includeQrCode) {
+                val qrTargetUrl = when (resume.personalInfo.qrCodeTarget) {
+                    "LinkedIn" -> resume.personalInfo.linkedinUrl.ifBlank { resume.personalInfo.websiteUrl }
+                    "GitHub" -> resume.personalInfo.githubUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                    else -> resume.personalInfo.websiteUrl.ifBlank { resume.personalInfo.linkedinUrl }
+                }
+                if (qrTargetUrl.isNotBlank()) {
+                    val qrBitmap = QrCodeGenerator.generateQrBitmap(qrTargetUrl, 48)
+                    val qrX = PAGE_WIDTH - MARGIN_X - 48f
+                    val qrY = currentY
+                    canvas.drawBitmap(qrBitmap, qrX, qrY, null)
+                }
+            }
+
+            currentY += 50f
+
+            // Contact Pill Bar
+            val contactBoxPaint = Paint().apply {
+                color = Color.parseColor("#F8FAFC")
+                style = Paint.Style.FILL
+            }
+            val contactBorderPaint = Paint().apply {
+                color = Color.parseColor("#E2E8F0")
+                style = Paint.Style.STROKE
+                strokeWidth = 1f
+            }
+            val rect = RectF(MARGIN_X, currentY, PAGE_WIDTH - MARGIN_X, currentY + 20f)
+            canvas.drawRoundRect(rect, 4f, 4f, contactBoxPaint)
+            canvas.drawRoundRect(rect, 4f, 4f, contactBorderPaint)
+
+            val contactLine = listOfNotNull(
+                resume.personalInfo.email.takeIf { it.isNotBlank() },
+                resume.personalInfo.phone.takeIf { it.isNotBlank() },
+                resume.personalInfo.location.takeIf { it.isNotBlank() },
+                resume.personalInfo.linkedinUrl.takeIf { it.isNotBlank() }
+            ).joinToString("   •   ")
+
+            val contactPaint = Paint().apply {
+                color = Color.parseColor("#475569")
+                textSize = 8.5f
+                isAntiAlias = true
+            }
+            canvas.drawText(contactLine, MARGIN_X + 10f, currentY + 13f, contactPaint)
+            currentY += 28f
         } else {
             // Modern / Minimal / ATS Classic Header
             val namePaint = Paint().apply {

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,6 +62,7 @@ fun ResumeSheetPreview(
             ResumeTemplate.MINIMALIST -> MinimalistTemplateLayout(resume, accentColor, fontFamily)
             ResumeTemplate.EXECUTIVE -> ExecutiveTemplateLayout(resume, accentColor, fontFamily)
             ResumeTemplate.TECH_SLATE -> TechSlateTemplateLayout(resume, accentColor, fontFamily)
+            ResumeTemplate.PROFESSIONAL -> ProfessionalTemplateLayout(resume, accentColor, fontFamily)
         }
     }
 }
@@ -760,5 +762,351 @@ private fun ResumeQrThumbnail(resume: ResumeFull, sizeDp: Int = 42) {
             color = Color(0xFF64748B),
             modifier = Modifier.padding(top = 2.dp)
         )
+    }
+}
+
+// ---------------- 6. PROFESSIONAL STRUCTURED TEMPLATE ----------------
+@Composable
+private fun ProfessionalTemplateLayout(
+    resume: ResumeFull,
+    accentColor: Color,
+    fontFamily: FontFamily
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp)
+    ) {
+        // Professional Header with solid left accent bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(5.dp)
+                        .height(48.dp)
+                        .background(accentColor, RoundedCornerShape(2.dp))
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = resume.personalInfo.fullName.ifBlank { "Your Name" },
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A),
+                        fontFamily = fontFamily
+                    )
+                    Text(
+                        text = resume.personalInfo.jobTitle.ifBlank { "Professional Role" },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor,
+                        fontFamily = fontFamily
+                    )
+                }
+            }
+
+            ResumeQrThumbnail(resume, sizeDp = 44)
+        }
+
+        // Contact info bar in light background
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = Color(0xFFF8FAFC),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (resume.personalInfo.email.isNotBlank()) {
+                    ContactMiniItem(Icons.Outlined.Email, resume.personalInfo.email)
+                }
+                if (resume.personalInfo.phone.isNotBlank()) {
+                    ContactMiniItem(Icons.Outlined.Phone, resume.personalInfo.phone)
+                }
+                if (resume.personalInfo.location.isNotBlank()) {
+                    ContactMiniItem(Icons.Outlined.LocationOn, resume.personalInfo.location)
+                }
+                if (resume.personalInfo.linkedinUrl.isNotBlank()) {
+                    ContactMiniItem(Icons.Outlined.Link, "LinkedIn")
+                }
+            }
+        }
+
+        // Summary
+        if (resume.personalInfo.summary.isNotBlank()) {
+            ProfessionalSectionHeader("PROFESSIONAL PROFILE", accentColor)
+            Text(
+                text = resume.personalInfo.summary,
+                fontSize = 9.5.sp,
+                lineHeight = 13.5.sp,
+                color = Color(0xFF334155),
+                fontFamily = fontFamily,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
+
+        // Experience
+        if (resume.experiences.isNotEmpty()) {
+            ProfessionalSectionHeader("PROFESSIONAL EXPERIENCE", accentColor)
+            resume.experiences.forEach { exp ->
+                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = exp.position.ifBlank { "Position" },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            fontFamily = fontFamily
+                        )
+                        Text(
+                            text = "${exp.startDate} - ${if (exp.isCurrent) "Present" else exp.endDate}",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF64748B),
+                            fontFamily = fontFamily
+                        )
+                    }
+                    Text(
+                        text = listOfNotNull(exp.company.takeIf { it.isNotBlank() }, exp.location.takeIf { it.isNotBlank() }).joinToString(" • "),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor,
+                        fontFamily = fontFamily
+                    )
+                    exp.bullets.forEach { bullet ->
+                        Row(modifier = Modifier.padding(top = 2.dp, start = 4.dp)) {
+                            Text("• ", fontSize = 9.5.sp, color = accentColor, fontWeight = FontWeight.Bold)
+                            Text(bullet, fontSize = 9.sp, lineHeight = 12.5.sp, color = Color(0xFF334155), fontFamily = fontFamily)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Education
+        if (resume.educations.isNotEmpty()) {
+            ProfessionalSectionHeader("EDUCATION", accentColor)
+            resume.educations.forEach { edu ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = listOfNotNull(edu.degree.takeIf { it.isNotBlank() }, edu.fieldOfStudy.takeIf { it.isNotBlank() }).joinToString(" in "),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            fontFamily = fontFamily
+                        )
+                        Text(
+                            text = edu.institution,
+                            fontSize = 9.sp,
+                            color = Color(0xFF475569),
+                            fontFamily = fontFamily
+                        )
+                    }
+                    Text(
+                        text = "${edu.startDate} - ${edu.endDate}",
+                        fontSize = 9.sp,
+                        color = Color(0xFF64748B),
+                        fontFamily = fontFamily
+                    )
+                }
+            }
+        }
+
+        // Skills
+        if (resume.skillCategories.isNotEmpty()) {
+            ProfessionalSectionHeader("CORE COMPETENCIES", accentColor)
+            resume.skillCategories.forEach { cat ->
+                Row(modifier = Modifier.padding(bottom = 3.dp)) {
+                    Text(
+                        text = "${cat.categoryName}: ",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A),
+                        fontFamily = fontFamily
+                    )
+                    Text(
+                        text = cat.skills.joinToString(", "),
+                        fontSize = 9.sp,
+                        color = Color(0xFF334155),
+                        fontFamily = fontFamily
+                    )
+                }
+            }
+        }
+
+        // Projects
+        if (resume.projects.isNotEmpty()) {
+            ProfessionalSectionHeader("KEY PROJECTS", accentColor)
+            resume.projects.forEach { proj ->
+                Column(modifier = Modifier.padding(bottom = 4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = proj.title,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            fontFamily = fontFamily
+                        )
+                        if (proj.techStack.isNotBlank()) {
+                            Text(
+                                text = proj.techStack,
+                                fontSize = 8.5.sp,
+                                color = accentColor,
+                                fontFamily = fontFamily
+                            )
+                        }
+                    }
+                    if (proj.description.isNotBlank()) {
+                        Text(
+                            text = proj.description,
+                            fontSize = 9.sp,
+                            lineHeight = 12.sp,
+                            color = Color(0xFF475569),
+                            fontFamily = fontFamily
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfessionalSectionHeader(title: String, accentColor: Color) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(accentColor, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = title,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A),
+                letterSpacing = 0.8.sp
+            )
+        }
+        Divider(color = Color(0xFFE2E8F0), thickness = 1.dp, modifier = Modifier.padding(top = 3.dp))
+    }
+}
+
+@Composable
+fun TemplateSelectorRow(
+    selectedTemplate: ResumeTemplate,
+    onSelectTemplate: (ResumeTemplate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "ATS-Friendly Templates (6 Styles)",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ResumeTemplate.values().take(3).forEach { t ->
+                val isSelected = selectedTemplate == t
+                Surface(
+                    onClick = { onSelectTemplate(t) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        if (isSelected) 2.dp else 1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = t.displayName,
+                            fontSize = 10.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "ATS Safe",
+                            fontSize = 8.5.sp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF64748B)
+                        )
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ResumeTemplate.values().drop(3).forEach { t ->
+                val isSelected = selectedTemplate == t
+                Surface(
+                    onClick = { onSelectTemplate(t) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        if (isSelected) 2.dp else 1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = t.displayName,
+                            fontSize = 10.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "ATS Safe",
+                            fontSize = 8.5.sp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF64748B)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
