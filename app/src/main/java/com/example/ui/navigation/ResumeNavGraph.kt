@@ -234,6 +234,18 @@ fun ResumeApp(
                     onSignInWithGoogle = {
                         viewModel.signInWithGoogle(context)
                     },
+                    onSendEmailOtp = { email, callback ->
+                        viewModel.sendEmailOtp(email, callback)
+                    },
+                    onVerifyEmailOtp = { email, otp, name, callback ->
+                        viewModel.verifyEmailOtp(email, otp, name, callback)
+                    },
+                    onSendPhoneOtp = { phone, callback ->
+                        viewModel.sendPhoneOtp(phone, callback)
+                    },
+                    onVerifyPhoneOtp = { phone, otp, name, callback ->
+                        viewModel.verifyPhoneOtp(phone, otp, name, callback)
+                    },
                     onSignOut = {
                         viewModel.signOut()
                     },

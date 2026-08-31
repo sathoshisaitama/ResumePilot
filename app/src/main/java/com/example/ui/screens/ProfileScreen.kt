@@ -29,6 +29,8 @@ import com.example.ui.theme.AiSparkleGradientStart
 import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.SuccessGreen
 
+import com.example.ui.components.SignInOtpDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -37,6 +39,10 @@ fun ProfileScreen(
     syncStatus: String,
     isSyncing: Boolean,
     onSignInWithGoogle: () -> Unit,
+    onSendEmailOtp: (String, (Boolean, String) -> Unit) -> Unit = { _, _ -> },
+    onVerifyEmailOtp: (String, String, String, (Boolean, String) -> Unit) -> Unit = { _, _, _, _ -> },
+    onSendPhoneOtp: (String, (Boolean, String) -> Unit) -> Unit = { _, _ -> },
+    onVerifyPhoneOtp: (String, String, String, (Boolean, String) -> Unit) -> Unit = { _, _, _, _ -> },
     onSignOut: () -> Unit,
     onSyncAllToFirestore: () -> Unit,
     onRestoreFromFirestore: () -> Unit,
@@ -44,6 +50,18 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showSignInModal by remember { mutableStateOf(false) }
+
+    if (showSignInModal) {
+        SignInOtpDialog(
+            onDismiss = { showSignInModal = false },
+            onSendEmailOtp = onSendEmailOtp,
+            onVerifyEmailOtp = onVerifyEmailOtp,
+            onSendPhoneOtp = onSendPhoneOtp,
+            onVerifyPhoneOtp = onVerifyPhoneOtp,
+            onSignInWithGoogle = onSignInWithGoogle
+        )
+    }
 
     Scaffold(
         modifier = modifier.testTag("profile_screen"),
@@ -129,33 +147,76 @@ fun ProfileScreen(
                                 ) {
                                     Icon(Icons.Default.Verified, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Firebase Authenticated", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    val authProviderLabel = when (authState.authProvider) {
+                                        "EMAIL_OTP" -> "Email OTP Verified"
+                                        "PHONE_OTP" -> "Mobile SMS Verified"
+                                        "GOOGLE" -> "Google Authenticated"
+                                        else -> "Cloud Sync Active"
+                                    }
+                                    Text(authProviderLabel, color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            if (authState.phone.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Mobile: ${authState.phone}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
 
-                            OutlinedButton(
-                                onClick = onSignOut,
-                                modifier = Modifier.testTag("sign_out_button"),
-                                shape = RoundedCornerShape(12.dp)
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Sign Out", fontSize = 13.sp)
+                                OutlinedButton(
+                                    onClick = { showSignInModal = true },
+                                    modifier = Modifier.weight(1f).testTag("switch_account_btn"),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Outlined.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Switch / OTP", fontSize = 12.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = onSignOut,
+                                    modifier = Modifier.weight(1f).testTag("sign_out_button"),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Sign Out", fontSize = 12.sp)
+                                }
                             }
                         } else {
-                            Button(
-                                onClick = onSignInWithGoogle,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_sign_in_button"),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Sign In with Google", fontWeight = FontWeight.Bold)
+                                Button(
+                                    onClick = { showSignInModal = true },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("open_otp_sign_in_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo)
+                                ) {
+                                    Icon(Icons.Outlined.Password, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Sign In with Email / Mobile OTP", fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = onSignInWithGoogle,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("google_sign_in_button"),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.AccountCircle, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Sign In with Google", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

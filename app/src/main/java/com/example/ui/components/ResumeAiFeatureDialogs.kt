@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -32,6 +38,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.ai.GeminiResumeService
 import com.example.data.model.*
 import com.example.ui.theme.*
+import com.example.util.FileImportResult
+import com.example.util.ResumeFileReader
 import kotlinx.coroutines.launch
 
 /**
@@ -368,18 +376,45 @@ fun JobKeywordMatcherDialog(
 }
 
 /**
- * 2. MULTI-FORMAT RESUME IMPORTER (PARSES RAW TEXT / PDF TEXT INTO RESUMEFULL)
+ * 2. MULTI-FORMAT RESUME IMPORTER (FILES / GOOGLE DRIVE / PDF / DOCX / RAW TEXT)
  */
 @Composable
 fun ImportResumeDialog(
     onDismiss: () -> Unit,
     onImportSuccess: (ResumeFull) -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val geminiService = remember { GeminiResumeService() }
 
+    var selectedTab by remember { mutableStateOf(0) } // 0: Files / Drive, 1: Paste Text
     var rawResumeText by remember { mutableStateOf("") }
+    var selectedFileInfo by remember { mutableStateOf<FileImportResult?>(null) }
     var isImporting by remember { mutableStateOf(false) }
+    var isReadingFile by remember { mutableStateOf(false) }
+
+    // File picker for Google Drive & Local Storage
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            isReadingFile = true
+            coroutineScope.launch {
+                val importResult = ResumeFileReader.readFileFromUri(context, uri)
+                selectedFileInfo = importResult
+                isReadingFile = false
+
+                if (importResult.parsedResume != null) {
+                    Toast.makeText(context, "Loaded ${importResult.fileName} successfully!", Toast.LENGTH_SHORT).show()
+                } else if (importResult.rawText.isNotBlank()) {
+                    rawResumeText = importResult.rawText
+                    Toast.makeText(context, "Extracted text from ${importResult.fileName}", Toast.LENGTH_SHORT).show()
+                } else if (importResult.errorMessage != null) {
+                    Toast.makeText(context, importResult.errorMessage, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
     val sampleResumeText = """
         Satoshi Nakamoto
@@ -415,7 +450,7 @@ fun ImportResumeDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.90f)
+                .fillMaxHeight(0.92f)
                 .testTag("import_resume_dialog"),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -425,6 +460,7 @@ fun ImportResumeDialog(
                     .fillMaxSize()
                     .padding(20.dp)
             ) {
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -433,17 +469,17 @@ fun ImportResumeDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Brush.linearGradient(listOf(AiSparkleGradientStart, PrimaryIndigo))),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.UploadFile, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                            Icon(Icons.Outlined.UploadFile, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Import Existing Resume", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text("Gemini extracts all fields into structured format", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Import Resume / Files", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Google Drive, PDF, DOCX, TXT, or JSON", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     IconButton(onClick = onDismiss) {
@@ -453,49 +489,250 @@ fun ImportResumeDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Paste resume content below:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    TextButton(
-                        onClick = { rawResumeText = sampleResumeText },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text("Fill Sample Resume", fontSize = 11.sp, color = PrimaryIndigo)
-                    }
-                }
-
-                OutlinedTextField(
-                    value = rawResumeText,
-                    onValueChange = { rawResumeText = it },
-                    placeholder = { Text("Paste any text from your PDF, Word doc, or LinkedIn profile here...") },
+                // Mode Tabs
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .testTag("import_raw_text_field"),
-                    shape = RoundedCornerShape(14.dp)
-                )
+                        .clip(RoundedCornerShape(12.dp))
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Files & Google Drive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Paste Text / Bio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (selectedTab == 0) {
+                    // ---------------- FILES & GOOGLE DRIVE TAB ----------------
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                filePickerLauncher.launch(
+                                    arrayOf(
+                                        "application/pdf",
+                                        "application/json",
+                                        "text/plain",
+                                        "application/msword",
+                                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                        "*/*"
+                                    )
+                                )
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = PrimaryIndigo.copy(alpha = 0.06f)),
+                        border = BorderStroke(1.5.dp, PrimaryIndigo.copy(alpha = 0.35f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryIndigo.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Outlined.DriveFolderUpload,
+                                    contentDescription = null,
+                                    tint = PrimaryIndigo,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                "Choose File from Storage or Google Drive",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = PrimaryIndigo
+                            )
+                            Text(
+                                "Supports .PDF, .DOCX, .TXT, .JSON resumes",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (isReadingFile) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = PrimaryIndigo)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Reading file content...", fontSize = 12.sp)
+                            }
+                        }
+                    } else if (selectedFileInfo != null) {
+                        val file = selectedFileInfo!!
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            if (file.fileExtension == "pdf") Icons.Outlined.PictureAsPdf
+                                            else if (file.fileExtension == "json") Icons.Outlined.Code
+                                            else Icons.Outlined.Description,
+                                            contentDescription = null,
+                                            tint = PrimaryIndigo
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(file.fileName, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("${file.fileSizeKb} KB • ${file.fileExtension.uppercase()} Document", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                    AssistChip(
+                                        onClick = { },
+                                        label = { Text(if (file.parsedResume != null) "Ready" else "Extracted", fontSize = 10.sp) }
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                if (file.parsedResume != null) {
+                                    val resume = file.parsedResume!!
+                                    Text("Structured Resume Details Found:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("Candidate: ${resume.personalInfo.fullName}", fontSize = 12.sp)
+                                    Text("Title: ${resume.title} (${resume.personalInfo.jobTitle})", fontSize = 12.sp)
+                                    Text("Experience count: ${resume.experiences.size} positions", fontSize = 12.sp)
+                                    Text("Skills: ${resume.skillCategories.flatMap { it.skills }.take(5).joinToString(", ")}", fontSize = 12.sp)
+                                } else {
+                                    Text("File Text Preview:", fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp)
+                                    Text(
+                                        text = file.rawText.take(600) + if (file.rawText.length > 600) "..." else "",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "No file chosen yet.\nTap the upload card above to pick a file from Google Drive or local storage.",
+                                textAlign = TextAlign.Center,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    // ---------------- PASTE TEXT TAB ----------------
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Paste raw resume or bio:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = { rawResumeText = sampleResumeText },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("Fill Sample Resume", fontSize = 11.sp, color = PrimaryIndigo)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = rawResumeText,
+                        onValueChange = { rawResumeText = it },
+                        placeholder = { Text("Paste any text from your PDF, Word doc, or LinkedIn profile here...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .testTag("import_raw_text_field"),
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Bottom Action Button
+                val canSubmit = (selectedFileInfo?.parsedResume != null) ||
+                        (selectedFileInfo?.rawText?.isNotBlank() == true) ||
+                        rawResumeText.isNotBlank()
 
                 Button(
                     onClick = {
-                        if (rawResumeText.isNotBlank()) {
+                        val directParsed = selectedFileInfo?.parsedResume
+                        if (directParsed != null) {
+                            onImportSuccess(directParsed)
+                            onDismiss()
+                            return@Button
+                        }
+
+                        val textToParse = if (selectedTab == 0 && selectedFileInfo?.rawText?.isNotBlank() == true) {
+                            selectedFileInfo!!.rawText
+                        } else {
+                            rawResumeText
+                        }
+
+                        if (textToParse.isNotBlank()) {
                             isImporting = true
                             coroutineScope.launch {
-                                val result = geminiService.parseResumeFromRawText(rawResumeText)
+                                val result = geminiService.parseResumeFromRawText(textToParse)
                                 val parsed = result.getOrNull()
                                 isImporting = false
                                 if (parsed != null) {
+                                    Toast.makeText(context, "Resume extracted and ready for editing!", Toast.LENGTH_SHORT).show()
                                     onImportSuccess(parsed)
                                     onDismiss()
+                                } else {
+                                    Toast.makeText(context, "Failed to parse text. Please check content.", Toast.LENGTH_LONG).show()
                                 }
                             }
                         }
                     },
-                    enabled = rawResumeText.isNotBlank() && !isImporting,
+                    enabled = canSubmit && !isImporting && !isReadingFile,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -506,7 +743,11 @@ fun ImportResumeDialog(
                     if (isImporting) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Parsing & Structuring with Gemini...")
+                        Text("Structuring with Gemini AI...")
+                    } else if (selectedFileInfo?.parsedResume != null) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Import & Open in Editor", fontWeight = FontWeight.Bold)
                     } else {
                         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))

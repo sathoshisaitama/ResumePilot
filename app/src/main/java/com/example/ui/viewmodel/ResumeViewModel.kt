@@ -163,6 +163,58 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
 
     // --- Firebase Auth & Firestore Sync Operations ---
 
+    fun sendEmailOtp(email: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val result = authService.sendEmailOtp(email)
+            result.onSuccess { code ->
+                onResult(true, code)
+            }.onFailure { err ->
+                onResult(false, err.message ?: "Failed to send email OTP")
+            }
+        }
+    }
+
+    fun verifyEmailOtp(email: String, otpCode: String, customName: String = "", onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            val result = authService.verifyEmailOtp(email, otpCode, customName)
+            result.onSuccess { user ->
+                _syncStatus.value = "Signed in as ${user.displayName} via Email OTP."
+                syncAllToFirestore()
+                onResult(true, "Signed in successfully!")
+            }.onFailure { err ->
+                onResult(false, err.message ?: "Verification failed.")
+            }
+            _isSyncing.value = false
+        }
+    }
+
+    fun sendPhoneOtp(phoneNumber: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val result = authService.sendPhoneOtp(phoneNumber)
+            result.onSuccess { code ->
+                onResult(true, code)
+            }.onFailure { err ->
+                onResult(false, err.message ?: "Failed to send SMS OTP")
+            }
+        }
+    }
+
+    fun verifyPhoneOtp(phoneNumber: String, otpCode: String, customName: String = "", onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            val result = authService.verifyPhoneOtp(phoneNumber, otpCode, customName)
+            result.onSuccess { user ->
+                _syncStatus.value = "Signed in with Mobile (${user.phone}) via SMS OTP."
+                syncAllToFirestore()
+                onResult(true, "Mobile verified successfully!")
+            }.onFailure { err ->
+                onResult(false, err.message ?: "SMS verification failed.")
+            }
+            _isSyncing.value = false
+        }
+    }
+
     fun signInWithGoogle(context: Context) {
         viewModelScope.launch {
             _isSyncing.value = true

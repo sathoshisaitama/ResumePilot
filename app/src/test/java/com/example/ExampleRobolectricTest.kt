@@ -85,4 +85,12 @@ class ExampleRobolectricTest {
         assertEquals(1, resume.educations.first().highlights.size)
         assertEquals(1, resume.experiences.first().bullets.size)
     }
+
+    @Test
+    fun `test qr code generator creates valid bitmap in robolectric`() {
+        val qrBitmap = com.example.util.QrCodeGenerator.generateQrBitmap("https://linkedin.com/in/testuser", size = 200)
+        assertNotNull(qrBitmap)
+        assertEquals(200, qrBitmap?.width)
+        assertEquals(200, qrBitmap?.height)
+    }
 }
